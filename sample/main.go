@@ -1,8 +1,11 @@
-# go-queue
-Light weight thread safe queue
+package main
 
-# Getting start
-```golang
+import (
+	"fmt"
+
+	"github.com/tak1827/go-queue/queue"
+)
+
 func main() {
 	/***********
 	 no `has` function
@@ -57,4 +60,3 @@ func main() {
 
 	fmt.Printf("dequeue: %v\n", elm)
 }
-```

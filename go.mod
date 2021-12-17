@@ -1,4 +1,4 @@
-module github.com/tak1827/go-queue.git
+module github.com/tak1827/go-queue
 
 go 1.17
 
