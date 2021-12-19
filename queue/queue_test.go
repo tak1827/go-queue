@@ -94,6 +94,11 @@ func TestDequeueLenIsEmpty(t *testing.T) {
 	require.Equal(t, isEmpty, true)
 
 	require.Equal(t, q.IsEmpty(), true)
+
+	err = q.Enqueue(elm4)
+	require.NoError(t, err)
+
+	require.Equal(t, q.Len(), 1)
 }
 
 func TestEnqueuThredSafe(t *testing.T) {

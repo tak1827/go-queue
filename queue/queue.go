@@ -23,7 +23,10 @@ type Entry struct {
 type Queue struct {
 	sync.Mutex
 
-	elements []interface{}
+	elements   []interface{}
+	head       int
+	tail       int
+	headIsLeft bool
 
 	useHasFunc bool            // whether using `has` function
 	elementMap map[string]bool // for checking having
@@ -33,7 +36,10 @@ func NewQueue(size int, useHasFunc bool) (q Queue) {
 	if size == 0 {
 		size = DefaultQueusSize
 	}
-	q.elements = make([]interface{}, 0, size)
+	q.elements = make([]interface{}, size)
+	q.head = 0
+	q.tail = 0
+	q.headIsLeft = true
 
 	q.useHasFunc = useHasFunc
 	if useHasFunc {
@@ -47,11 +53,16 @@ func (q *Queue) Enqueue(element interface{}) error {
 	q.Lock()
 	defer q.Unlock()
 
-	if len(q.elements) >= cap(q.elements) {
+	if !q.headIsLeft && q.tail == q.head {
 		return ErrOverflow
 	}
 
-	q.elements = append(q.elements, element)
+	q.elements[q.tail] = element
+	q.tail += 1
+	if q.tail == cap(q.elements) {
+		q.tail = 0
+		q.headIsLeft = !q.headIsLeft
+	}
 
 	if !q.useHasFunc {
 		return nil
@@ -70,12 +81,17 @@ func (q *Queue) Dequeue() (element interface{}, isEmpty bool) {
 	q.Lock()
 	defer q.Unlock()
 
-	if len(q.elements) == 0 {
+	if q.headIsLeft && q.tail-q.head == 0 {
 		isEmpty = true
 		return
 	}
 
-	element, q.elements = q.elements[0], q.elements[1:]
+	element = q.elements[q.head]
+	q.head += 1
+	if q.head == cap(q.elements) {
+		q.head = 0
+		q.headIsLeft = !q.headIsLeft
+	}
 
 	if q.useHasFunc {
 		entry := element.(Entry)
@@ -100,12 +116,16 @@ func (q *Queue) IsEmpty() bool {
 	q.Lock()
 	defer q.Unlock()
 
-	return len(q.elements) == 0
+	return q.headIsLeft && q.tail-q.head == 0
 }
 
 func (q *Queue) Len() int {
 	q.Lock()
 	defer q.Unlock()
 
-	return len(q.elements)
+	if q.headIsLeft {
+		return q.tail - q.head
+	}
+
+	return q.tail + cap(q.elements) - q.head
 }
