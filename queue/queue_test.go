@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"strconv"
 	"sync"
 	"testing"
 
@@ -11,24 +12,24 @@ func TestEnqueHas(t *testing.T) {
 	tests := []struct {
 		desc       string
 		useHasFunc bool
-		element    Entry
+		element    *Entry
 		err        error
 	}{
 		{
 			desc:       "has activated",
 			useHasFunc: true,
-			element: Entry{
+			element: &Entry{
 				Key:   "key1",
-				Value: "value1",
+				Value: []byte("value1"),
 			},
 			err: nil,
 		},
 		{
 			desc:       "has disactivated",
 			useHasFunc: false,
-			element: Entry{
+			element: &Entry{
 				Key:   "key1",
-				Value: "value1",
+				Value: []byte("value1"),
 			},
 			err: ErrHasFuncDisactivated,
 		},
@@ -54,39 +55,48 @@ func TestEnqueHas(t *testing.T) {
 func TestDequeueLenIsEmpty(t *testing.T) {
 	q := NewQueue(3, false)
 
-	elm1 := "string"
-	err := q.Enqueue(elm1)
+	e1 := &Entry{
+		Key:   "e1",
+		Value: []byte{},
+	}
+	err := q.Enqueue(e1)
 	require.NoError(t, err)
 
-	elm2 := 123
-	err = q.Enqueue(elm2)
+	e2 := &Entry{
+		Key:   "e2",
+		Value: []byte{},
+	}
+	err = q.Enqueue(e2)
 	require.NoError(t, err)
 
-	elm3 := Entry{"key3", true}
-	err = q.Enqueue(elm3)
+	e3 := &Entry{
+		Key:   "e3",
+		Value: []byte{},
+	}
+	err = q.Enqueue(e3)
 	require.NoError(t, err)
 
 	require.Equal(t, q.Len(), 3)
 
-	elm4 := false
-	err = q.Enqueue(elm4)
+	e4 := &Entry{
+		Key:   "e4",
+		Value: []byte{},
+	}
+	err = q.Enqueue(e4)
 	require.EqualError(t, err, ErrOverflow.Error())
 
-	elm, _ := q.Dequeue()
-	elm = elm.(string)
-	require.Equal(t, elm, elm1)
+	e, _ := q.Dequeue()
+	require.Equal(t, e1, e)
 
 	require.Equal(t, q.Len(), 2)
 
-	elm, _ = q.Dequeue()
-	elm = elm.(int)
-	require.Equal(t, elm, elm2)
+	e, _ = q.Dequeue()
+	require.Equal(t, e2, e)
 
 	require.Equal(t, q.Len(), 1)
 
-	elm, _ = q.Dequeue()
-	elm = elm.(Entry)
-	require.Equal(t, elm, elm3)
+	e, _ = q.Dequeue()
+	require.Equal(t, e3, e)
 
 	require.Equal(t, q.Len(), 0)
 
@@ -95,7 +105,7 @@ func TestDequeueLenIsEmpty(t *testing.T) {
 
 	require.Equal(t, q.IsEmpty(), true)
 
-	err = q.Enqueue(elm4)
+	err = q.Enqueue(e4)
 	require.NoError(t, err)
 
 	require.Equal(t, q.Len(), 1)
@@ -105,7 +115,7 @@ func TestEnqueuThredSafe(t *testing.T) {
 	var (
 		q        = NewQueue(50, false)
 		wg       = &sync.WaitGroup{}
-		elements = []interface{}{
+		elements = []*Entry{
 			&Entry{},
 			&Entry{},
 			&Entry{},
@@ -140,7 +150,7 @@ func TestEnqueuThredSafe(t *testing.T) {
 func TestDequeueThredSafe(t *testing.T) {
 	var (
 		q = Queue{
-			elements: []interface{}{
+			elements: []*Entry{
 				&Entry{},
 				&Entry{},
 				&Entry{},
@@ -174,5 +184,25 @@ func TestDequeueThredSafe(t *testing.T) {
 
 	if g, w := q.Len(), 0; g != w {
 		t.Errorf("got: %d, want: %d", g, w)
+	}
+}
+
+func BenchmarkNewQueue(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		es := make([]*Entry, 100)
+		for i := range es {
+			es[i] = &Entry{
+				Key:   strconv.FormatInt(int64(n), 10) + "hoge" + strconv.FormatInt(int64(i), 10),
+				Value: []byte{0x01},
+			}
+		}
+
+		q := NewQueue(DefaultQueusSize, true)
+		for i := range es {
+			err := q.Enqueue(es[i])
+			require.NoError(b, err)
+		}
+		// _, ok := q.Dequeue()
+		// require.Equal(b, ok, false)
 	}
 }

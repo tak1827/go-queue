@@ -17,39 +17,39 @@ var (
 
 type Entry struct {
 	Key   string
-	Value interface{}
+	Value []byte
 }
 
 type Queue struct {
 	sync.Mutex
 
-	elements   []interface{}
+	elements   []*Entry
 	head       int
 	tail       int
 	headIsLeft bool
 
-	useHasFunc bool            // whether using `has` function
-	elementMap map[string]bool // for checking having
+	useHasFunc bool                // whether using `has` function
+	elementMap map[string]struct{} // for checking having
 }
 
 func NewQueue(size int, useHasFunc bool) (q Queue) {
 	if size == 0 {
 		size = DefaultQueusSize
 	}
-	q.elements = make([]interface{}, size)
+	q.elements = make([]*Entry, size)
 	q.head = 0
 	q.tail = 0
 	q.headIsLeft = true
 
 	q.useHasFunc = useHasFunc
 	if useHasFunc {
-		q.elementMap = make(map[string]bool, size)
+		q.elementMap = make(map[string]struct{}, size)
 	}
 
 	return
 }
 
-func (q *Queue) Enqueue(element interface{}) error {
+func (q *Queue) Enqueue(element *Entry) error {
 	q.Lock()
 	defer q.Unlock()
 
@@ -68,16 +68,12 @@ func (q *Queue) Enqueue(element interface{}) error {
 		return nil
 	}
 
-	entry, ok := element.(Entry)
-	if !ok {
-		return ErrInvalidtype
-	}
-	q.elementMap[entry.Key] = true
+	q.elementMap[element.Key] = struct{}{}
 
 	return nil
 }
 
-func (q *Queue) Dequeue() (element interface{}, isEmpty bool) {
+func (q *Queue) Dequeue() (element *Entry, isEmpty bool) {
 	q.Lock()
 	defer q.Unlock()
 
@@ -94,8 +90,7 @@ func (q *Queue) Dequeue() (element interface{}, isEmpty bool) {
 	}
 
 	if q.useHasFunc {
-		entry := element.(Entry)
-		delete(q.elementMap, entry.Key)
+		delete(q.elementMap, element.Key)
 	}
 
 	return
@@ -109,7 +104,8 @@ func (q *Queue) Has(key string) (bool, error) {
 		return false, ErrHasFuncDisactivated
 	}
 
-	return q.elementMap[key], nil
+	_, exists := q.elementMap[key]
+	return exists, nil
 }
 
 func (q *Queue) IsEmpty() bool {
