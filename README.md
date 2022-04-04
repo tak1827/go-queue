@@ -2,6 +2,7 @@
 Light weight thread safe queue
 
 # Getting start
+the sample code of `sample` dir
 ```golang
 func main() {
 	/***********
@@ -11,37 +12,39 @@ func main() {
 	size := 100
 	q := queue.NewQueue(size, useHasFunc)
 
-	value := "string"
-	err := q.Enqueue(value)
+	e := &queue.Entry{
+		Key:   "key",
+		Value: []byte("value"),
+	}
+	err := q.Enqueue(e)
 	if err != nil {
 		panic(err.Error())
 	}
 
 	elm, _ := q.Dequeue()
-	elm = elm.(string)
-	if elm != value {
-		panic("unexpected value")
+	if elm.Key != e.Key {
+		panic("unexpected key")
 	}
 
 	fmt.Printf("dequeue: %v\n", elm)
 
-	/***********
+	/********************
 	 use `has` function
-	************/
+	*********************/
 	useHasFunc = true
 	size = 100
 	q = queue.NewQueue(size, useHasFunc)
 
-	entry := queue.Entry{
-		Key:   "key",
-		Value: "value",
+	e = &queue.Entry{
+		Key:   "key2",
+		Value: []byte("value2"),
 	}
-	err = q.Enqueue(entry)
+	err = q.Enqueue(e)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	has, err := q.Has(entry.Key)
+	has, err := q.Has(e.Key)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -50,8 +53,7 @@ func main() {
 	}
 
 	elm, _ = q.Dequeue()
-	elm = elm.(queue.Entry)
-	if elm != entry {
+	if elm.Key != e.Key {
 		panic("unexpected value")
 	}
 
